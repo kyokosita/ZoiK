@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const { Client, GatewayIntentBits, Collection, Events, REST, Routes } = require('discord.js');
 
-// Khởi tạo client
+// --- Khởi tạo client ---
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
@@ -12,20 +12,20 @@ const client = new Client({
   ],
 });
 
-// Tạo collection chứa lệnh
+// --- Tạo collection lệnh ---
 client.commands = new Collection();        // Slash commands
-client.prefixCommands = new Collection();  // Lệnh z!
-client.zoikCommands = new Collection();    // Lệnh k!
+client.prefixCommands = new Collection();  // z! commands
+client.zoikCommands = new Collection();    // k! commands
 
-// Biến đếm
+// --- Đếm số lệnh ---
 let totalCommandFiles = 0;
 let loadedSlash = 0;
 let loadedPrefix = 0;
 let loadedZoik = 0;
 let loadedEvents = 0;
 
-// Load lệnh
-const loadCommands = (dir, collection, type = 'prefix') => {
+// --- Hàm load command ---
+const loadCommands = (dir, collection, type) => {
   if (!fs.existsSync(dir)) return;
   const files = fs.readdirSync(dir);
 
@@ -39,19 +39,16 @@ const loadCommands = (dir, collection, type = 'prefix') => {
       const command = require(fullPath);
       totalCommandFiles++;
 
-      // Slash command
       if (type === 'slash' && command.data && command.execute) {
         collection.set(command.data.name, command);
         loadedSlash++;
       }
 
-      // Prefix command
       if (type === 'prefix' && command.name && command.run) {
         collection.set(command.name, command);
         loadedPrefix++;
       }
 
-      // Zoik command
       if (type === 'zoik' && command.name && command.run) {
         collection.set(command.name, command);
         loadedZoik++;
@@ -60,12 +57,12 @@ const loadCommands = (dir, collection, type = 'prefix') => {
   }
 };
 
-// Load tất cả commands
-loadCommands(path.join(__dirname, 'commands'), client.prefixCommands, 'prefix');
+// --- Load command theo loại ---
+loadCommands(path.join(__dirname, 'commands/prefix'), client.prefixCommands, 'prefix');
 loadCommands(path.join(__dirname, 'commands/zoik'), client.zoikCommands, 'zoik');
-loadCommands(path.join(__dirname, 'commands'), client.commands, 'slash');
+loadCommands(path.join(__dirname, 'commands/slash'), client.commands, 'slash');
 
-// Load events
+// --- Load events ---
 const loadEvents = (dir) => {
   if (!fs.existsSync(dir)) return;
   const files = fs.readdirSync(dir);
@@ -78,7 +75,7 @@ const loadEvents = (dir) => {
       loadEvents(fullPath);
     } else if (file.endsWith('.js')) {
       const event = require(fullPath);
-      if (!event.name || typeof event.execute !== 'function') return;
+      if (!event.name || typeof event.execute !== 'function') continue;
 
       if (event.once) {
         client.once(event.name, (...args) => event.execute(...args, client));
@@ -93,14 +90,7 @@ const loadEvents = (dir) => {
 
 loadEvents(path.join(__dirname, 'events'));
 
-// Ghi log
-console.log(`✅ Loaded ${totalCommandFiles} command files.`);
-console.log(`🔵 Prefix commands (z!): ${loadedPrefix}`);
-console.log(`🟢 Slash commands: ${loadedSlash}`);
-console.log(`🟣 Zoik commands (k!): ${loadedZoik}`);
-console.log(`📡 Events loaded: ${loadedEvents}`);
-
-// Slash registration
+// --- Slash command registration ---
 client.once(Events.ClientReady, async () => {
   console.log(`🤖 Bot đã đăng nhập với tên: ${client.user.tag}`);
 
@@ -116,5 +106,12 @@ client.once(Events.ClientReady, async () => {
   }
 });
 
-// Đăng nhập bot
+// --- Log ---
+console.log(`✅ Loaded ${totalCommandFiles} command files.`);
+console.log(`🔵 Prefix commands (z!): ${loadedPrefix}`);
+console.log(`🟣 Zoik commands (k!): ${loadedZoik}`);
+console.log(`🟢 Slash commands: ${loadedSlash}`);
+console.log(`📡 Events loaded: ${loadedEvents}`);
+
+// --- Khởi động bot ---
 client.login(process.env.TOKEN);

@@ -13,16 +13,14 @@ module.exports = {
 
     let command;
 
-    // Phân loại
     if (usedPrefix === 'z!') {
       command = client.prefixCommands.get(cmdName);
     } else if (usedPrefix === 'k!') {
-      if (message.author.id !== process.env.OWNER_ID) {
-        const reply = await message.reply('❌ Lệnh `k!` chỉ dành cho chủ bot.');
-        setTimeout(() => reply.delete().catch(() => {}), 5000);
-        return;
-      }
-      command = client.zoikCommands.get(cmdName);
+      if (message.author.id !== process.env.OWNER_ID)
+        return message.reply('❌ Lệnh `k!` chỉ dành cho chủ bot.');
+
+      const realCmd = cmdName === 'help' ? 'zoikhelp' : cmdName;
+      command = client.zoikCommands.get(realCmd);
     }
 
     if (!command) return;
@@ -30,16 +28,23 @@ module.exports = {
     try {
       const reply = await command.run(client, message, args);
 
-      // Nếu là k! và có phản hồi là tin nhắn => xóa sau 5s
+      // Nếu là k! và phản hồi là message → xoá cả lệnh & phản hồi sau 5 giây
       if (usedPrefix === 'k!' && reply && reply.deletable) {
-        setTimeout(() => reply.delete().catch(() => {}), 5000);
+        setTimeout(() => {
+          if (message.deletable) message.delete().catch(() => {});
+          reply.delete().catch(() => {});
+        }, 5000);
       }
+
     } catch (err) {
       console.error(err);
       const errMsg = await message.reply('❌ Có lỗi xảy ra khi thực hiện lệnh.');
-      if (usedPrefix === 'k!' && errMsg.deletable) {
-        setTimeout(() => errMsg.delete().catch(() => {}), 5000);
-      }
+      if (usedPrefix === 'k!' && reply && reply.deletable) {
+  setTimeout(() => {
+    if (message.deletable) message.delete().catch(() => {});
+    reply.delete().catch(() => {});
+  }, 60000);
+}
     }
   }
 };
